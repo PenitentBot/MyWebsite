@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Automation Agency</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #06b6d4, #3b82f6);
+            border-radius: 3px;
+        }
+        
+        .cursor-trail-dot {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle, #06b6d4 0%, #3b82f6 100%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.8), 0 0 16px rgba(6, 182, 212, 0.4);
+            filter: blur(0.5px);
+        }
+        
+        @media (max-width: 768px) {
+            .cursor-trail-dot {
+                display: none;
+            }
+        }
+        
+        .grid-background {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.15) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.15) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: grid-move 15s linear infinite;
+            mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+        }
+        
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(6, 182, 212, 0.3);
+            border-radius: 50%;
+            animation: float-particle 20s infinite;
+        }
+        
+        @keyframes float-particle {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translate(100px, -100vh) scale(0.5); opacity: 0; }
+        }
+        
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse-slow 5s ease-in-out infinite;
+        }
+        
+        .glass-card {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6, #06b6d4);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 8s linear infinite;
+        }
+        
+        .glow-button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .glow-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor-trail"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { motion, AnimatePresence } = Motion;
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [currentPage, setCurrentPage] = useState('home');
+            const [scrolled, setScrolled] = useState(false);
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    setScrolled(window.scrollY > 50);
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            useEffect(() => {
+                const trailContainer = document.getElementById('cursor-trail');
+                if (!trailContainer) return;
+                
+                const numDots = 8;
+                const dots = [];
+                const positions = [];
+                
+                for (let i = 0; i < numDots; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'cursor-trail-dot';
+                    const opacity = 1 - (i / numDots) * 0.9;
+                    dot.style.opacity = opacity;
+                    const size = 6 - (i / numDots) * 4;
+                    dot.style.width = size + 'px';
+                    dot.style.height = size + 'px';
+                    trailContainer.appendChild(dot);
+                    dots.push(dot);
+                    positions.push({ x: 0, y: 0 });
+                }
+                
+                let mouseX = 0, mouseY = 0;
+                
+                const updateMousePosition = (e) => {
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                };
+                
+                const animateTrail = () => {
+                    positions[0].x += (mouseX - positions[0].x) * 1;
+                    positions[0].y += (mouseY - positions[0].y) * 1;
+                    
+                    for (let i = 1; i < numDots; i++) {
+                        const followSpeed = 0.25 - (i * 0.015);
+                        positions[i].x += (positions[i - 1].x - positions[i].x) * followSpeed;
+                        positions[i].y += (positions[i - 1].y - positions[i].y) * followSpeed;
+                    }
+                    
+                    dots.forEach((dot, index) => {
+                        dot.style.left = positions[index].x + 'px';
+                        dot.style.top = positions[index].y + 'px';
+                    });
+                    
+                    requestAnimationFrame(animateTrail);
+                };
+                
+                const handleHover = (e) => {
+                    const target = e.target;
+                    const isInteractive = target.tagName === 'A' || target.tagName === 'BUTTON' || target.closest('a') || target.closest('button');
+                    
+                    dots.forEach((dot, index) => {
+                        if (isInteractive) {
+                            const size = 8 - (index / numDots) * 5;
+                            dot.style.width = size + 'px';
+                            dot.style.height = size + 'px';
+                            dot.style.background = 'radial-gradient(circle, #10b981 0%, #06b6d4 100%)';
+                            dot.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.9), 0 0 20px rgba(16, 185, 129, 0.5)';
+                        } else {
+                            const size = 6 - (index / numDots) * 4;
+                            dot.style.width = size + 'px';
+                            dot.style.height = size + 'px';
+                            dot.style.background = 'radial-gradient(circle, #06b6d4 0%, #3b82f6 100%)';
+                            dot.style.boxShadow = '0 0 8px rgba(6, 182, 212, 0.8), 0 0 16px rgba(6, 182, 212, 0.4)';
+                        }
+                    });
+                };
+                
+                window.addEventListener('mousemove', updateMousePosition);
+                document.addEventListener('mouseover', handleHover);
+                animateTrail();
+                
+                return () => {
+                    window.removeEventListener('mousemove', updateMousePosition);
+                    document.removeEventListener('mouseover', handleHover);
+                    dots.forEach(dot => dot.remove());
+                };
+            }, []);
+
+            const navigate = (page) => {
+                setCurrentPage(page);
+                setMobileMenuOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="relative min-h-screen">
+                    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md border-b border-white/5' : 'bg-transparent'}`}>
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+                            <button onClick={() => navigate('home')} className="text-xl sm:text-2xl font-display font-bold">
+                                <span className="gradient-text">AI Automation</span>
+                            </button>
+                            
+                            <div className="hidden md:flex space-x-6 lg:space-x-8">
+                                <button onClick={() => navigate('home')} className={`hover:text-cyan-400 transition text-sm lg:text-base ${currentPage === 'home' ? 'text-cyan-400' : ''}`}>Home</button>
+                                <button onClick={() => navigate('services')} className={`hover:text-cyan-400 transition text-sm lg:text-base ${currentPage === 'services' ? 'text-cyan-400' : ''}`}>Services</button>
+                                <button onClick={() => navigate('about')} className={`hover:text-cyan-400 transition text-sm lg:text-base ${currentPage === 'about' ? 'text-cyan-400' : ''}`}>About</button>
+                                <button onClick={() => navigate('projects')} className={`hover:text-cyan-400 transition text-sm lg:text-base ${currentPage === 'projects' ? 'text-cyan-400' : ''}`}>Projects</button>
+                            </div>
+                            
+                            <button 
+                                className="md:hidden z-50 w-10 h-10 flex flex-col justify-center items-center"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            >
+                                <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+                                <span className={`block w-6 h-0.5 bg-white my-1 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
+                                <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+                            </button>
+                        </div>
+                        
+                        <AnimatePresence>
+                            {mobileMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="md:hidden bg-black/95 backdrop-blur-lg border-t border-white/10 overflow-hidden"
+                                >
+                                    <div className="px-4 py-6 space-y-4">
+                                        <button onClick={() => navigate('home')} className="block py-2 hover:text-cyan-400 transition w-full text-left">Home</button>
+                                        <button onClick={() => navigate('services')} className="block py-2 hover:text-cyan-400 transition w-full text-left">Services</button>
+                                        <button onClick={() => navigate('about')} className="block py-2 hover:text-cyan-400 transition w-full text-left">About</button>
+                                        <button onClick={() => navigate('projects')} className="block py-2 hover:text-cyan-400 transition w-full text-left">Projects</button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </nav>
+
+                    <AnimatePresence mode="wait">
+                        {currentPage === 'home' && <HomePage key="home" navigate={navigate} />}
+                        {currentPage === 'services' && <ServicesPage key="services" />}
+                        {currentPage === 'about' && <AboutPage key="about" />}
+                        {currentPage === 'projects' && <ProjectsPage key="projects" />}
+                    </AnimatePresence>
+
+                    <Footer navigate={navigate} />
+                </div>
+            );
+        }
+
+        // HOME PAGE
+        function HomePage({ navigate }) {
+            const faqs = [
+                { q: "How long does implementation take?", a: "Most projects are completed within 2-4 weeks, depending on complexity." },
+                { q: "Do you provide ongoing support?", a: "Yes! We offer 24/7 support and regular optimization updates." },
+                { q: "Can you integrate with our existing tools?", a: "Absolutely. We work with 500+ platforms including Salesforce, HubSpot, and custom APIs." },
+                { q: "What's the ROI timeline?", a: "Most clients see positive ROI within 30-60 days of implementation." }
+            ];
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black text-white min-h-screen flex items-center">
+                        <div className="grid-background"></div>
+                        
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            <div className="animate-pulse-slow absolute -left-40 top-20 h-96 w-96 rounded-full bg-cyan-500 blur-[120px] opacity-30"></div>
+                            <div className="animate-pulse-slow absolute -right-40 bottom-20 h-96 w-96 rounded-full bg-purple-500 blur-[120px] opacity-30" style={{animationDelay: '2s'}}></div>
+                            
+                            {[...Array(20)].map((_, i) => (
+                                <div key={i} className="particle" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 20}s`, animationDuration: `${15 + Math.random() * 10}s` }} />
+                            ))}
+                        </div>
+
+                        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-20 lg:py-32 mt-16 sm:mt-0 w-full z-10">
+                            <div className="max-w-5xl mx-auto text-center space-y-8 sm:space-y-10">
+                                <motion.h1 
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.8, delay: 0.2 }}
+                                    className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold leading-[1.1] tracking-tight"
+                                >
+                                    Turn <span className="text-cyan-400">manual work</span>
+                                    <br/>
+                                    into{' '}
+                                    <span className="relative inline-block">
+                                        <span className="gradient-text">autopilot revenue</span>
+                                    </span>
+                                </motion.h1>
+
+                                <motion.p 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.8, delay: 0.4 }}
+                                    className="text-base sm:text-lg lg:text-xl text-slate-300/90 max-w-3xl mx-auto leading-relaxed"
+                                >
+                                    Launch done-for-you AI workflows that capture leads, qualify them, follow up, and update your CRM—
+                                    <span className="text-cyan-300 font-semibold">without a single manual click</span>. 
+                                    Free your team from repetitive tasks and focus only on high-value conversations.
+                                </motion.p>
+
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.8, delay: 0.6 }}
+                                    className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
+                                >
+                                    <button onClick={() => navigate('about')} className="glow-button group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 px-8 sm:px-10 py-3.5 sm:py-4 text-sm sm:text-base font-semibold text-white shadow-xl shadow-cyan-500/30 transition-all hover:shadow-2xl hover:shadow-cyan-500/40 hover:scale-105">
+                                        <span className="relative z-10">Discover More</span>
+                                        <svg className="relative z-10 transition-transform group-hover:translate-x-1" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <button onClick={() => navigate('projects')} className="group inline-flex items-center gap-2 text-sm sm:text-base font-medium text-slate-200 hover:text-cyan-300 transition-all">
+                                        <span>View Live Automations</span>
+                                        <svg className="transition-transform group-hover:translate-x-1" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </motion.div>
+
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.8, delay: 0.8 }}
+                                    className="grid gap-4 sm:gap-5 pt-8 sm:pt-12 grid-cols-1 sm:grid-cols-3 max-w-5xl mx-auto"
+                                >
+                                    {[
+                                        { icon: "🎯", title: "Lead Engine", desc: "Capture, score, and route leads in real time", color: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/30" },
+                                        { icon: "🤖", title: "Sales Copilot", desc: "AI agents send personalized messages", color: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/30" },
+                                        { icon: "⚡", title: "Ops Layer", desc: "Sync with CRM and dashboards automatically", color: "from-purple-500/10 to-purple-500/5 border-purple-500/30" }
+                                    ].map((card, i) => (
+                                        <motion.div 
+                                            key={i}
+                                            drag
+                                            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                            dragElastic={0.2}
+                                            dragSnapToOrigin
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className={`glass-card bg-gradient-to-br ${card.color} rounded-2xl p-6 sm:p-7 cursor-grab active:cursor-grabbing group`}
+                                        >
+                                            <div className="text-3xl sm:text-4xl mb-3 group-hover:scale-110 transition-transform">{card.icon}</div>
+                                            <div className="mb-2 text-sm sm:text-base font-bold text-white">{card.title}</div>
+                                            <p className="text-xs sm:text-sm text-slate-300/80 leading-relaxed">{card.desc}</p>
+                                        </motion.div>
+                                    ))}
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.8, delay: 1 }}
+                                    className="grid grid-cols-3 gap-6 sm:gap-8 max-w-3xl mx-auto pt-8 sm:pt-12"
+                                >
+                                    {[
+                                        { value: "98%", label: "Automation Rate" },
+                                        { value: "24/7", label: "Active Monitoring" },
+                                        { value: "5x", label: "Faster Processing" }
+                                    ].map((stat, i) => (
+                                        <div key={i} className="text-center">
+                                            <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-1 sm:mb-2">{stat.value}</div>
+                                            <div className="text-xs sm:text-sm text-slate-400">{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="py-20 px-4 bg-black">
+                        <div className="max-w-7xl mx-auto">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="text-4xl font-display font-bold text-center mb-16"
+                            >
+                                How We <span className="gradient-text">Transform</span> Your Business
+                            </motion.h2>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                {[
+                                    { step: "01", title: "Discovery", desc: "We analyze your workflow and identify automation opportunities", icon: "🔍" },
+                                    { step: "02", title: "Design", desc: "Custom automation blueprint tailored to your needs", icon: "🎨" },
+                                    { step: "03", title: "Deploy", desc: "Seamless integration with your existing systems", icon: "🚀" },
+                                    { step: "04", title: "Optimize", desc: "Continuous monitoring and performance improvement", icon: "📈" }
+                                ].map((item, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, y: 30 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i * 0.2 }}
+                                        className="relative"
+                                    >
+                                        <div className="glass-card p-6 rounded-2xl hover:scale-105 transition-transform">
+                                            <div className="text-5xl mb-4">{item.icon}</div>
+                                            <div className="text-cyan-400 text-sm font-bold mb-2">STEP {item.step}</div>
+                                            <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                                            <p className="text-slate-400 text-sm">{item.desc}</p>
+                                        </div>
+                                        {i < 3 && (
+                                            <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-cyan-500 to-transparent"></div>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="py-20 px-4 bg-gradient-to-b from-black to-slate-950">
+                        <div className="max-w-4xl mx-auto">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="text-4xl font-display font-bold text-center mb-16"
+                            >
+                                Frequently Asked <span className="gradient-text">Questions</span>
+                            </motion.h2>
+
+                            <div className="space-y-4">
+                                {faqs.map((faq, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: -30 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="glass-card p-6 rounded-xl hover:border-cyan-500/50 transition-all"
+                                    >
+                                        <h3 className="text-lg font-bold mb-2 text-cyan-400">{faq.q}</h3>
+                                        <p className="text-slate-300">{faq.a}</p>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                </motion.div>
+            );
+        }
+
+        // SERVICES PAGE (keeping same)
+        function ServicesPage() {
+            const services = [
+                {
+                    title: "Lead Generation & Qualification",
+                    description: "Automatically capture, score, and qualify leads from multiple sources using AI-powered workflows.",
+                    features: ["Multi-channel lead capture", "AI-powered scoring", "Automatic routing", "Real-time notifications", "CRM integration", "Lead nurturing sequences"],
+                    icon: "🎯",
+                    price: "Starting at $499/mo"
+                },
+                {
+                    title: "Email & Communication Automation",
+                    description: "Send personalized emails, follow-ups, and multi-channel messages without manual intervention.",
+                    features: ["Personalized templates", "Auto follow-ups", "Multi-channel sync", "Performance analytics", "A/B testing", "Spam compliance"],
+                    icon: "📧",
+                    price: "Starting at $399/mo"
+                },
+                {
+                    title: "CRM Integration & Sync",
+                    description: "Keep your CRM, spreadsheets, and tools perfectly synchronized in real-time.",
+                    features: ["Bi-directional sync", "Data mapping", "Conflict resolution", "Custom field support", "Scheduled updates", "Error handling"],
+                    icon: "🔄",
+                    price: "Starting at $599/mo"
+                },
+                {
+                    title: "Voice Calling & AI Agents",
+                    description: "Deploy AI-powered voice agents for customer support, sales calls, and appointment booking.",
+                    features: ["Natural conversation", "Multi-language", "Call recording", "Sentiment analysis", "Appointment booking", "Follow-up automation"],
+                    icon: "📞",
+                    price: "Starting at $799/mo"
+                },
+                {
+                    title: "Web Scraping & Data Extraction",
+                    description: "Extract and process data from websites, competitors, and marketplaces automatically.",
+                    features: ["Scheduled scraping", "Data cleaning", "API integration", "Change detection", "Export formats", "Cloud storage"],
+                    icon: "🕷️",
+                    price: "Starting at $449/mo"
+                },
+                {
+                    title: "Custom Workflow Automation",
+                    description: "Build complex, multi-step automations tailored to your unique business processes.",
+                    features: ["Visual builder", "Conditional logic", "Error handling", "Custom integrations", "Monitoring dashboard", "Priority support"],
+                    icon: "⚡",
+                    price: "Custom pricing"
+                }
+            ];
+
+            const useCases = [
+                { industry: "E-Commerce", automation: "Order processing, inventory sync, customer notifications", savings: "40 hours/week" },
+                { industry: "Real Estate", automation: "Lead qualification, appointment booking, follow-ups", savings: "35 hours/week" },
+                { industry: "Healthcare", automation: "Appointment reminders, patient onboarding, billing", savings: "30 hours/week" },
+                { industry: "SaaS", automation: "User onboarding, trial follow-ups, churn prevention", savings: "45 hours/week" }
+            ];
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="min-h-screen py-20 px-4 sm:px-6 bg-black mt-16"
+                >
+                    <div className="max-w-7xl mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center mb-16"
+                        >
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold mb-6">
+                                Our <span className="gradient-text">Services</span>
+                            </h1>
+                            <p className="text-lg text-slate-300 max-w-3xl mx-auto">
+                                Comprehensive AI automation solutions designed to transform your business operations and accelerate growth
+                            </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
+                            {services.map((service, index) => (
+                                <motion.div
+                                    key={index}
+                                    drag
+                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                    dragElastic={0.1}
+                                    dragSnapToOrigin
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    whileHover={{ y: -10 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500/50 transition-all cursor-grab active:cursor-grabbing"
+                                >
+                                    <div className="text-5xl mb-6">{service.icon}</div>
+                                    <h3 className="text-2xl font-display font-bold mb-4 text-cyan-400">{service.title}</h3>
+                                    <p className="text-slate-300 mb-6 leading-relaxed">{service.description}</p>
+                                    
+                                    <div className="space-y-2 mb-6">
+                                        {service.features.map((feature, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 text-sm text-slate-400">
+                                                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                {feature}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-700">
+                                        <div className="text-lg font-bold text-emerald-400">{service.price}</div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="mt-20"
+                        >
+                            <h2 className="text-3xl font-display font-bold text-center mb-12">
+                                Industry <span className="gradient-text">Use Cases</span>
+                            </h2>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {useCases.map((useCase, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="glass-card p-6 rounded-xl"
+                                    >
+                                        <h3 className="text-xl font-bold mb-3 text-cyan-400">{useCase.industry}</h3>
+                                        <p className="text-slate-300 mb-4">{useCase.automation}</p>
+                                        <div className="flex items-center gap-2 text-emerald-400">
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="font-bold">Saves {useCase.savings}</span>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        // ABOUT PAGE (keeping same)
+        function AboutPage() {
+            const team = [
+                {
+                    name: "Deepak Mathur",
+                    role: "Founder & Lead Engineer",
+                    skills: ["Full-Stack Development", "AI Integration", "System Architecture"],
+                    experience: "3 years in automation"
+                },
+                {
+                    name: "Raj Vishwakarma",
+                    role: "AI Solutions Architect",
+                    skills: ["Machine Learning", "Data Science", "Automation Design"],
+                    experience: "3 years in AI/ML"
+                }
+            ];
+
+            const achievements = [
+                { value: "500+", label: "Projects Completed" },
+                { value: "4.9/5", label: "Client Satisfaction" },
+                { value: "300%", label: "Average ROI" },
+                { value: "10,000+", label: "Hours Saved" }
+            ];
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="min-h-screen py-20 px-4 sm:px-6 bg-gradient-to-b from-slate-950 to-black mt-16"
+                >
+                    <div className="max-w-7xl mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center mb-20"
+                        >
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold mb-6">
+                                <span className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
+                                    Driving AI Automation Innovation
+                                </span>
+                            </h1>
+                            <p className="text-xl text-gray-400 max-w-4xl mx-auto leading-relaxed">
+                                Engineers and specialists obsessed with efficiency, liberating businesses from mundane tasks so human creativity can flourish.
+                            </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+                            {achievements.map((achievement, i) => (
+                                <motion.div
+                                    key={i}
+                                    drag
+                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                    dragElastic={0.1}
+                                    dragSnapToOrigin
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    className="glass-card p-6 rounded-2xl text-center cursor-grab active:cursor-grabbing"
+                                >
+                                    <div className="text-3xl font-bold gradient-text mb-2">{achievement.value}</div>
+                                    <div className="text-sm text-slate-400">{achievement.label}</div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+                            {[
+                                { title: "Innovation First", desc: "We constantly push boundaries to deliver cutting-edge automation solutions that stay ahead of industry trends" },
+                                { title: "Client Centric", desc: "Your success is our success. We tailor every solution to your unique needs and business objectives" },
+                                { title: "Data Driven", desc: "Every decision is backed by data, metrics, and proven methodologies for measurable results" }
+                            ].map((value, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.2 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    className="glass-card p-8 rounded-2xl text-center"
+                                >
+                                    <h3 className="text-xl font-bold mb-3 text-cyan-400">{value.title}</h3>
+                                    <p className="text-slate-300 leading-relaxed">{value.desc}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        <div className="mb-20">
+                            <h2 className="text-4xl font-display font-bold text-center mb-12">Meet Our Experts</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                {team.map((member, i) => (
+                                    <motion.div
+                                        key={i}
+                                        drag
+                                        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                        dragElastic={0.1}
+                                        dragSnapToOrigin
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: i * 0.2 }}
+                                        whileHover={{ scale: 1.05 }}
+                                        className="glass-card p-8 rounded-2xl cursor-grab active:cursor-grabbing"
+                                    >
+                                        <h3 className="text-2xl font-bold text-center mb-2">{member.name}</h3>
+                                        <p className="text-cyan-400 text-center mb-2 uppercase text-sm tracking-wider">{member.role}</p>
+                                        <p className="text-center text-slate-400 text-sm mb-6">{member.experience}</p>
+                                        
+                                        <div className="space-y-2">
+                                            {member.skills.map((skill, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 text-sm text-slate-300">
+                                                    <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                                                    {skill}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="max-w-4xl mx-auto"
+                        >
+                            <div className="glass-card p-10 rounded-2xl">
+                                <h2 className="text-3xl font-bold mb-6 text-cyan-400">Our Story</h2>
+                                <div className="space-y-4 text-slate-300 leading-relaxed">
+                                    <p>
+                                        Founded in 2019 with a vision to eliminate repetitive work, AEROOxAI has grown from a small team of automation enthusiasts 
+                                        to a leading provider of AI-powered business solutions serving clients across 30+ countries.
+                                    </p>
+                                    <p>
+                                        We believe that technology should empower humans, not replace them. Our automations handle the mundane, 
+                                        allowing your team to focus on creativity, strategy, and growth. Every automation we build is designed to 
+                                        amplify human potential, not diminish it.
+                                    </p>
+                                    <p>
+                                        With hundreds of successful implementations across industries including e-commerce, healthcare, real estate, and SaaS, 
+                                        we've proven that the right automation can transform businesses, boost productivity by up to 400%, and drive sustainable growth.
+                                    </p>
+                                    <p>
+                                        Our commitment to innovation drives us to constantly explore emerging technologies, from GPT-4 integration to advanced 
+                                        workflow orchestration. We're not just keeping up with the AI revolution – we're leading it.
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        // PROJECTS PAGE - "OUR IMPACT" SECTION REMOVED
+        function ProjectsPage() {
+            const projects = [
+                {
+                    title: "Lead Generation Bot",
+                    desc: "Automated lead capture and qualification system with AI scoring and intelligent routing",
+                    icon: "🎯",
+                    tech: ["Python", "OpenAI GPT-4", "n8n", "Airtable"],
+                    results: ["300% increase in qualified leads", "60% reduction in manual work", "Real-time AI scoring", "98% accuracy rate"],
+                    client: "TechCorp Solutions",
+                    duration: "3 weeks"
+                },
+                {
+                    title: "Email Campaign Automator",
+                    desc: "Multi-channel email automation with AI personalization and dynamic content generation",
+                    icon: "📧",
+                    tech: ["Node.js", "SendGrid", "GPT-4", "MongoDB"],
+                    results: ["85% open rate improvement", "Personalized at scale", "Automatic A/B testing", "50K+ emails/day processed"],
+                    client: "Growth Marketing Inc",
+                    duration: "4 weeks"
+                },
+                {
+                    title: "CRM Sync Pipeline",
+                    desc: "Real-time bi-directional data synchronization across Salesforce, HubSpot, and Google Sheets",
+                    icon: "🔄",
+                    tech: ["n8n", "Zapier", "MongoDB", "REST APIs"],
+                    results: ["Zero data loss", "Instant updates", "Multi-platform sync", "99.9% uptime"],
+                    client: "Enterprise Sales Co",
+                    duration: "5 weeks"
+                },
+                {
+                    title: "AI Voice Assistant",
+                    desc: "Intelligent voice agent for customer support with natural language processing and sentiment analysis",
+                    icon: "🤖",
+                    tech: ["Python", "Twilio", "GPT-4", "Speech-to-Text"],
+                    results: ["24/7 availability", "90% customer satisfaction", "Multi-language support", "5000+ calls handled/month"],
+                    client: "Support Solutions Ltd",
+                    duration: "6 weeks"
+                },
+                {
+                    title: "Sales Funnel Automation",
+                    desc: "End-to-end sales automation from lead to customer with integrated payment processing",
+                    icon: "💰",
+                    tech: ["React", "Firebase", "Stripe", "SendGrid"],
+                    results: ["40% conversion increase", "Automated follow-ups", "Payment integration", "$500K+ revenue processed"],
+                    client: "Online Academy",
+                    duration: "4 weeks"
+                },
+                {
+                    title: "Data Scraping Engine",
+                    desc: "Automated web scraping with intelligent data extraction, cleaning, and validation",
+                    icon: "🕷️",
+                    tech: ["Python", "Selenium", "BeautifulSoup", "PostgreSQL"],
+                    results: ["10,000+ records/day", "Scheduled extraction", "Data validation", "95% accuracy"],
+                    client: "Market Research Pro",
+                    duration: "3 weeks"
+                }
+            ];
+
+            const clientLogos = ["TechCorp", "Growth Inc", "StartupHub", "Enterprise Co", "Solutions Ltd", "Academy Pro"];
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="min-h-screen py-20 px-4 sm:px-6 bg-black mt-16"
+                >
+                    <div className="max-w-7xl mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center mb-16"
+                        >
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold mb-6">
+                                Featured <span className="gradient-text">Projects</span>
+                            </h1>
+                            <p className="text-lg text-slate-300 max-w-3xl mx-auto mb-12">
+                                Real-world automation solutions that have transformed businesses and delivered measurable results
+                            </p>
+
+                            <div className="flex flex-wrap justify-center gap-8 mb-12">
+                                {clientLogos.map((client, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="glass-card px-6 py-3 rounded-lg"
+                                    >
+                                        <span className="text-slate-400 font-semibold">{client}</span>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {projects.map((project, index) => (
+                                <motion.div
+                                    key={index}
+                                    drag
+                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                    dragElastic={0.1}
+                                    dragSnapToOrigin
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    whileHover={{ scale: 1.02 }}
+                                    className="group relative bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all cursor-grab active:cursor-grabbing overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-500/0 group-hover:from-cyan-500/10 group-hover:to-purple-500/10 transition-all duration-500"></div>
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="text-5xl">{project.icon}</div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-slate-400">Client</div>
+                                                <div className="text-sm text-cyan-400 font-semibold">{project.client}</div>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-2xl font-display font-bold mb-3 text-cyan-400">{project.title}</h3>
+                                        <p className="text-slate-300 mb-6 leading-relaxed">{project.desc}</p>
+                                        
+                                        <div className="mb-6">
+                                            <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Technologies:</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {project.tech.map((tech, idx) => (
+                                                    <span key={idx} className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-full text-xs border border-cyan-500/20">
+                                                        {tech}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <div className="text-xs text-slate-400 mb-3 uppercase tracking-wider">Key Results:</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {project.results.map((result, idx) => (
+                                                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
+                                                        <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-700 flex items-center justify-between">
+                                            <div className="text-sm text-slate-400">
+                                                <span className="text-cyan-400 font-semibold">{project.duration}</span> to complete
+                                            </div>
+                                            <div className="flex items-center gap-1 text-yellow-400 text-sm">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <span key={i}>⭐</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        function Footer({ navigate }) {
+            return (
+                <footer className="bg-black py-12 sm:py-20 border-t border-white/10 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-purple-900/20 via-black to-black"></div>
+                    <div className="container mx-auto px-4 sm:px-8 relative z-10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
+                            <div>
+                                <button onClick={() => navigate('home')} className="text-xl sm:text-2xl font-display font-bold mb-4 inline-block">
+                                    <span className="gradient-text">AEROOxAI</span>
+                                </button>
+                                <p className="text-sm sm:text-base text-gray-400 mt-4">Pioneering the future of automation.</p>
+                            </div>
+                            <div>
+                                <h4 className="font-bold mb-4 text-sm sm:text-base">Services</h4>
+                                <ul className="space-y-2 text-sm sm:text-base text-gray-400">
+                                    <li>Chatbots</li>
+                                    <li>Lead Gen</li>
+                                    <li>Sales Systems</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-bold mb-4 text-sm sm:text-base">Contact</h4>
+                                <div className="space-y-2 text-sm sm:text-base text-gray-400">
+                                    <p>aiwithdeepakk@gmail.com</p>
+                                    <p>8586014860</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
