@@ -142,6 +142,9 @@
         const { motion, AnimatePresence } = Motion;
         const { useState, useEffect } = React;
 
+        // Check if device is mobile
+        const isMobile = () => window.innerWidth <= 768;
+
         function App() {
             const [currentPage, setCurrentPage] = useState('home');
             const [scrolled, setScrolled] = useState(false);
@@ -304,6 +307,8 @@
                 { q: "What's the ROI timeline?", a: "Most clients see positive ROI within 30-60 days of implementation." }
             ];
 
+            const mobile = isMobile();
+
             return (
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -382,13 +387,19 @@
                                     ].map((card, i) => (
                                         <motion.div 
                                             key={i}
-                                            drag
-                                            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                            dragElastic={0.2}
-                                            dragSnapToOrigin
+                                            {...(!mobile && {
+                                                drag: true,
+                                                dragConstraints: { left: 0, right: 0, top: 0, bottom: 0 },
+                                                dragElastic: 0.2,
+                                                dragSnapToOrigin: true
+                                            })}
+                                            initial={{ opacity: 0, y: 30 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ delay: i * 0.1 }}
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
-                                            className={`glass-card bg-gradient-to-br ${card.color} rounded-2xl p-6 sm:p-7 cursor-grab active:cursor-grabbing group`}
+                                            className={`glass-card bg-gradient-to-br ${card.color} rounded-2xl p-6 sm:p-7 ${!mobile ? 'cursor-grab active:cursor-grabbing' : ''} group`}
                                         >
                                             <div className="text-3xl sm:text-4xl mb-3 group-hover:scale-110 transition-transform">{card.icon}</div>
                                             <div className="mb-2 text-sm sm:text-base font-bold text-white">{card.title}</div>
@@ -491,8 +502,10 @@
             );
         }
 
-        // SERVICES PAGE (keeping same)
+        // SERVICES PAGE
         function ServicesPage() {
+            const mobile = isMobile();
+            
             const services = [
                 {
                     title: "Lead Generation & Qualification",
@@ -570,16 +583,18 @@
                             {services.map((service, index) => (
                                 <motion.div
                                     key={index}
-                                    drag
-                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                    dragElastic={0.1}
-                                    dragSnapToOrigin
+                                    {...(!mobile && {
+                                        drag: true,
+                                        dragConstraints: { left: 0, right: 0, top: 0, bottom: 0 },
+                                        dragElastic: 0.1,
+                                        dragSnapToOrigin: true
+                                    })}
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                     whileHover={{ y: -10 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500/50 transition-all cursor-grab active:cursor-grabbing"
+                                    className={`bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500/50 transition-all ${!mobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                 >
                                     <div className="text-5xl mb-6">{service.icon}</div>
                                     <h3 className="text-2xl font-display font-bold mb-4 text-cyan-400">{service.title}</h3>
@@ -640,8 +655,10 @@
             );
         }
 
-        // ABOUT PAGE (keeping same)
+        // ABOUT PAGE
         function AboutPage() {
+            const mobile = isMobile();
+            
             const team = [
                 {
                     name: "Deepak Mathur",
@@ -691,15 +708,17 @@
                             {achievements.map((achievement, i) => (
                                 <motion.div
                                     key={i}
-                                    drag
-                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                    dragElastic={0.1}
-                                    dragSnapToOrigin
+                                    {...(!mobile && {
+                                        drag: true,
+                                        dragConstraints: { left: 0, right: 0, top: 0, bottom: 0 },
+                                        dragElastic: 0.1,
+                                        dragSnapToOrigin: true
+                                    })}
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: i * 0.1 }}
                                     whileHover={{ scale: 1.05 }}
-                                    className="glass-card p-6 rounded-2xl text-center cursor-grab active:cursor-grabbing"
+                                    className={`glass-card p-6 rounded-2xl text-center ${!mobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                 >
                                     <div className="text-3xl font-bold gradient-text mb-2">{achievement.value}</div>
                                     <div className="text-sm text-slate-400">{achievement.label}</div>
@@ -733,15 +752,17 @@
                                 {team.map((member, i) => (
                                     <motion.div
                                         key={i}
-                                        drag
-                                        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                        dragElastic={0.1}
-                                        dragSnapToOrigin
+                                        {...(!mobile && {
+                                            drag: true,
+                                            dragConstraints: { left: 0, right: 0, top: 0, bottom: 0 },
+                                            dragElastic: 0.1,
+                                            dragSnapToOrigin: true
+                                        })}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: i * 0.2 }}
                                         whileHover={{ scale: 1.05 }}
-                                        className="glass-card p-8 rounded-2xl cursor-grab active:cursor-grabbing"
+                                        className={`glass-card p-8 rounded-2xl ${!mobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                     >
                                         <h3 className="text-2xl font-bold text-center mb-2">{member.name}</h3>
                                         <p className="text-cyan-400 text-center mb-2 uppercase text-sm tracking-wider">{member.role}</p>
@@ -770,7 +791,7 @@
                                 <h2 className="text-3xl font-bold mb-6 text-cyan-400">Our Story</h2>
                                 <div className="space-y-4 text-slate-300 leading-relaxed">
                                     <p>
-                                        Founded in 2019 with a vision to eliminate repetitive work, AEROOxAI has grown from a small team of automation enthusiasts 
+                                        Founded in 2019 with a vision to eliminate repetitive work, AI Automation has grown from a small team of automation enthusiasts 
                                         to a leading provider of AI-powered business solutions serving clients across 30+ countries.
                                     </p>
                                     <p>
@@ -794,8 +815,10 @@
             );
         }
 
-        // PROJECTS PAGE - "OUR IMPACT" SECTION REMOVED
+        // PROJECTS PAGE
         function ProjectsPage() {
+            const mobile = isMobile();
+            
             const projects = [
                 {
                     title: "Lead Generation Bot",
@@ -894,15 +917,17 @@
                             {projects.map((project, index) => (
                                 <motion.div
                                     key={index}
-                                    drag
-                                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                                    dragElastic={0.1}
-                                    dragSnapToOrigin
+                                    {...(!mobile && {
+                                        drag: true,
+                                        dragConstraints: { left: 0, right: 0, top: 0, bottom: 0 },
+                                        dragElastic: 0.1,
+                                        dragSnapToOrigin: true
+                                    })}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.1 }}
                                     whileHover={{ scale: 1.02 }}
-                                    className="group relative bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all cursor-grab active:cursor-grabbing overflow-hidden"
+                                    className={`group relative bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl border border-slate-700 hover:border-cyan-500 transition-all ${!mobile ? 'cursor-grab active:cursor-grabbing' : ''} overflow-hidden`}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-500/0 group-hover:from-cyan-500/10 group-hover:to-purple-500/10 transition-all duration-500"></div>
                                     
@@ -970,7 +995,7 @@
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
                             <div>
                                 <button onClick={() => navigate('home')} className="text-xl sm:text-2xl font-display font-bold mb-4 inline-block">
-                                    <span className="gradient-text">AEROOxAI</span>
+                                    <span className="gradient-text">AI Automation</span>
                                 </button>
                                 <p className="text-sm sm:text-base text-gray-400 mt-4">Pioneering the future of automation.</p>
                             </div>
